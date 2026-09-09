@@ -85,6 +85,15 @@ Adventure's serializer cannot emit).
    -> writes `plugins/avoMOTD/banner.json`.
 3. `/avomotd reload`. Present `banner.json` -> full banner; remove it -> the 2px strip.
 
+**Two things that make or break it** (both handled by `build_banner.py`):
+- Reference the tile by its **permanent `textures.minecraft.net` URL** embedded as
+  an unsigned texture value. A profile *id* lookup does **not** render — the client
+  will not resolve the MineSkin account behind it.
+- Put **`"color":"white"`** on the root component. Face sprites are tinted by the
+  inherited text colour, so without it the whole banner renders at ~50% brightness.
+- Keep it compact: description + favicon share one **32767-char** status string.
+  No per-face `name`/`hat`, colour only at the root (66 tiles ≈ 17 KB).
+
 **Caveats (by design of the MC feature):**
 - **Version-specific.** It compiles against the Mojang-mapped Paper server jar
   (`pom.xml` `paper.jar`/`paper.libs` - point them at your server) and touches the

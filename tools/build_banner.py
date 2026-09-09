@@ -2,11 +2,12 @@
 """Build avoMOTD's full 1.21.9 object-component banner from a PNG.
 
 A 264x16 image is split into 66 tiles of 8x8. Each unique tile is baked into a
-Minecraft skin (the tile in the head's face UV) and uploaded to MineSkin, which
-returns a Mojang-resolvable profile. The banner MOTD is then 66 "object"/player
-face components (33 wide x 2 rows) referenced by profile id (int-array) - small
-enough to stay under the 32767-char status-string limit, unlike embedding the
-texture per face.
+Minecraft skin (the tile in the head's face UV) and uploaded to MineSkin to get a
+permanent textures.minecraft.net URL. The banner MOTD is then 66 "object"/player
+face components (33 wide x 2 rows), each carrying a minimal unsigned texture value
+(just that URL, ~180 chars) - under the 32767-char status-string limit, and with
+no dependency on which MineSkin account uploaded it (profile-id lookups do NOT
+render on the client; embedding the URL does).
 
 Usage:
     python build_banner.py <image.png> <mineskin-key> [out.json]
@@ -72,8 +73,8 @@ def uuid_to_ints(hex32: str) -> list[int]:
     return [int.from_bytes(b[i:i + 4], "big", signed=True) for i in range(0, 16, 4)]
 
 
-def upload_tile(tile: Image.Image, key: str) -> list[int]:
-    """Bake the 8x8 tile into a skin face, upload, return the profile id ints.
+def upload_tile(tile: Image.Image, key: str) -> str:
+    """Bake the 8x8 tile into a skin face, upload, return the texture URL.
 
     Respects MineSkin's rate limit: on a throttled response it waits the time the
     API reports and retries, so the whole 66-tile run just paces itself."""
@@ -97,8 +98,9 @@ def upload_tile(tile: Image.Image, key: str) -> list[int]:
             continue
         if data.get("success"):
             value = data["skin"]["texture"]["data"]["value"]
-            profile_id = json.loads(base64.b64decode(value))["profileId"]
-            return uuid_to_ints(profile_id)
+            # Permanent textures.minecraft.net URL - referenced directly, so the
+            # banner never depends on which MineSkin account uploaded it.
+            return json.loads(base64.b64decode(value))["textures"]["SKIN"]["url"]
         # throttled or error -> wait what the API tells us, then retry
         wait = 5.0
         rl = data.get("rateLimit") or {}
@@ -134,22 +136,32 @@ def main() -> int:
         for col in range(COLS):
             tile = banner.crop((col * TILE, row * TILE, col * TILE + TILE, row * TILE + TILE))
             h = hashlib.sha1(tile.tobytes()).hexdigest()
-            if h in cache:
-                ids = cache[h]
+            entry = cache.get(h)
+            if isinstance(entry, dict) and entry.get("url"):
+                url = entry["url"]
                 reused += 1
             else:
-                ids = upload_tile(tile, key)
-                cache[h] = ids
+                url = upload_tile(tile, key)
+                cache[h] = {"url": url}
                 json.dump(cache, open(CACHE, "w"))     # persist after each upload
                 uploads += 1
                 print(f"  tile {row},{col} uploaded ({uploads})")
                 time.sleep(DELAY)
-            faces.append({"type": "object", "object": "player",
-                          "player": {"name": "t", "id": ids}, "hat": False})
+            # Minimal unsigned texture value: the client only needs the skin URL.
+            # ~180 chars/face keeps 66 faces well under the 32767-char status limit.
+            value = base64.b64encode(json.dumps(
+                {"textures": {"SKIN": {"url": url}}}, separators=(",", ":")).encode()).decode()
+            # Compact on purpose: the whole status response (description + favicon)
+            # must fit 32767 chars. No "name", no "hat" (the tile is baked into the
+            # hat UV too, so the default hat layer draws the same pixels).
+            faces.append({"object": "player",
+                          "player": {"properties": [{"name": "textures", "value": value}]}})
 
-    motd = {"text": "", "extra": faces}
-    open(out_path, "w", encoding="utf-8").write(json.dumps(motd))
-    size = len(json.dumps(motd))
+    # white at the root: sprites are tinted by the inherited text colour
+    motd = {"text": "", "color": "white", "extra": faces}
+    js = json.dumps(motd, separators=(",", ":"))
+    open(out_path, "w", encoding="utf-8").write(js)
+    size = len(js)
     print(f"banner.json written: {out_path}")
     print(f"tiles={COLS * ROWS} uploaded={uploads} reused={reused} json_size={size} (limit 32767)")
     if size > 32767:
