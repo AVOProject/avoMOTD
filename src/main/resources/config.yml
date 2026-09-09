@@ -28,8 +28,10 @@ width: 42
 # The "/ N" shown after the online count. 0 = keep the server's max-players.
 max-players: 0
 
-# Optional 64x64 PNG favicon in plugins/avoMOTD/ set on the ping (no restart via /avomotd reload).
-# Blank = leave the server-icon.png. Must be exactly 64x64.
+# Optional 64x64 PNG favicon, set on the ping (no restart - /avomotd reload).
+# Paths resolve: absolute -> plugins/avoMOTD/<name> -> server root. So
+# "world/icon.png" keeps the icon with the world. Blank = leave server-icon.png.
+# Must be exactly 64x64 (tools/make_icon.py builds one from a wide banner).
 icon: icon.png
 
 # --- FULL 16px pixel-art banner (advanced, needs ProtocolLib-free NMS injection

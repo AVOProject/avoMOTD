@@ -150,10 +150,24 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
         if (injector != null) injector.setMotdJson(bannerJson);
     }
 
-    private String readBannerJson(String name) {
+
+    /**
+     * Resolve a configured file. Tries, in order: an absolute path, this plugin's
+     * folder, then the server root - so {@code icon: world/icon.png} keeps the
+     * image with the world instead of in the plugin folder.
+     */
+    private java.io.File resolveFile(String name) {
         if (name == null || name.isBlank()) return null;
-        java.io.File file = new java.io.File(getDataFolder(), name);
-        if (!file.isFile()) return null;
+        java.io.File direct = new java.io.File(name);
+        if (direct.isAbsolute()) return direct;
+        java.io.File inPlugin = new java.io.File(getDataFolder(), name);
+        if (inPlugin.isFile()) return inPlugin;
+        return new java.io.File(getServer().getWorldContainer(), name);
+    }
+
+    private String readBannerJson(String name) {
+        java.io.File file = resolveFile(name);
+        if (file == null || !file.isFile()) return null;
         try {
             String json = java.nio.file.Files.readString(file.toPath()).trim();
             if (json.isEmpty()) return null;
@@ -168,12 +182,11 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
     /** Load a 64x64 PNG favicon from the data folder; blank/missing -> leave the server's. */
     private void loadIcon(String name) {
         icon = null;
-        if (name == null || name.isBlank()) return;
-        java.io.File file = new java.io.File(getDataFolder(), name);
-        if (!file.isFile()) return;
+        java.io.File file = resolveFile(name);
+        if (file == null || !file.isFile()) return;
         try {
             icon = getServer().loadServerIcon(file);
-            getLogger().info("[avoMOTD] favicon loaded: " + name);
+            getLogger().info("[avoMOTD] favicon loaded: " + file.getPath());
         } catch (Exception e) {
             getLogger().warning("[avoMOTD] favicon load failed (must be 64x64 PNG): " + e.getMessage());
         }
@@ -213,9 +226,8 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
     // ---- image loading -----------------------------------------------------
 
     private int[][] loadImage(String name) {
-        if (name == null || name.isBlank()) return null;
-        File file = new File(getDataFolder(), name);
-        if (!file.isFile()) return null;
+        java.io.File file = resolveFile(name);
+        if (file == null || !file.isFile()) return null;
         try {
             BufferedImage img = ImageIO.read(file);
             if (img == null) return null;

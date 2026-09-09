@@ -84,7 +84,7 @@ def upload_tile(tile: Image.Image, key: str) -> str:
     tmp = os.path.join(HERE, "_tile.png")
     skin.save(tmp)
 
-    for attempt in range(12):
+    for attempt in range(40):
         out = subprocess.run(
             ["curl", "-s", "-m", "90", "-X", "POST", MINESKIN,
              "-H", "Authorization: Bearer " + key, "-H", "User-Agent: avoMOTD/1.0",
@@ -101,15 +101,25 @@ def upload_tile(tile: Image.Image, key: str) -> str:
             # Permanent textures.minecraft.net URL - referenced directly, so the
             # banner never depends on which MineSkin account uploaded it.
             return json.loads(base64.b64decode(value))["textures"]["SKIN"]["url"]
-        # throttled or error -> wait what the API tells us, then retry
+        # throttled -> wait exactly as long as the API says. The hourly window
+        # (100/key) is the one that bites on a 66-tile run; its reset is an epoch
+        # second, so honour that rather than retrying on a short timer.
         wait = 5.0
         rl = data.get("rateLimit") or {}
+        lim = rl.get("limit") or {}
+        hour = lim.get("hour") or {}
+        minute = lim.get("minute") or {}
         nxt = rl.get("next") or {}
-        if isinstance(nxt.get("relative"), (int, float)):
+        if hour.get("remaining") == 0 and hour.get("reset"):
+            wait = max(wait, hour["reset"] - time.time() + 5)
+        elif minute.get("remaining") == 0 and minute.get("reset"):
+            wait = max(wait, minute["reset"] - time.time() + 2)
+        elif isinstance(nxt.get("relative"), (int, float)):
             wait = max(wait, nxt["relative"] + 1)
         elif rl.get("delay", {}).get("seconds"):
             wait = max(wait, rl["delay"]["seconds"] + 1)
-        print(f"    throttled, waiting {wait:.0f}s (attempt {attempt + 1})")
+        wait = min(wait, 3900)
+        print(f"    throttled, waiting {wait:.0f}s (attempt {attempt + 1})", flush=True)
         time.sleep(wait)
     raise RuntimeError("MineSkin: gave up after retries: " + out.stdout[:200])
 
@@ -126,15 +136,20 @@ def main() -> int:
     if os.path.isfile(CACHE):
         cache = json.load(open(CACHE))
 
+    # The two MOTD lines are 9px apart but a face sprite is only 8px tall, so one
+    # source row is hidden in the gap between them. Sample 17 rows and skip row 8
+    # -> the picture keeps its true proportions and the seam lands on a row that
+    # was never meant to be seen (the dark line itself cannot be removed).
     banner = trim_border(Image.open(image_path).convert("RGBA")).resize(
-        (COLS * TILE, ROWS * TILE), Image.LANCZOS)
+        (COLS * TILE, ROWS * TILE + 1), Image.LANCZOS)
 
     faces, uploads, reused = [], 0, 0
     for row in range(ROWS):
         if row:
             faces.append("\n")
         for col in range(COLS):
-            tile = banner.crop((col * TILE, row * TILE, col * TILE + TILE, row * TILE + TILE))
+            top = row * (TILE + 1)          # row 0 -> y0..8, row 1 -> y9..17
+            tile = banner.crop((col * TILE, top, col * TILE + TILE, top + TILE))
             h = hashlib.sha1(tile.tobytes()).hexdigest()
             entry = cache.get(h)
             if isinstance(entry, dict) and entry.get("url"):

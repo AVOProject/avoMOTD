@@ -41,7 +41,8 @@ image: motd.png        # PNG in plugins/avoMOTD/ ; blank/missing -> built-in sce
 stamp-name: false      # overlay a 2-row block-font logo on top
 name: avoMOTD          # ...this name, when stamp-name is true
 width: 42              # block columns (≈46 is the safe max before the list clips)
-icon: icon.png         # optional 64x64 PNG favicon (plugins/avoMOTD/); blank = leave server-icon.png
+icon: icon.png         # 64x64 favicon; path resolves plugin folder -> server root,
+                       # so "world/icon.png" keeps it with the world
 max-players: 0         # "/ N" after the online count; 0 = keep the server's
 ```
 
@@ -101,6 +102,19 @@ Adventure's serializer cannot emit).
 - Clients older than 1.21.9 fall back to the 2px block strip.
 - At 264x16 a detailed image reads as a colourful mosaic - design the source for
   low resolution.
+
+## Icons
+
+A 7:1 banner cropped square shows a tenth of itself. `tools/make_icon.py` takes a
+centred slice of the wordmark and letterboxes it into 64x64 with the banner's own
+sky/ground colours:
+
+```
+python tools/make_icon.py banner.png plugins/avoMOTD/icon.png 0.5
+```
+
+The last number is the fraction of banner width kept - smaller zooms in on the
+wordmark, larger shows more scene. Then `/avomotd reload`.
 
 ## Build
 
