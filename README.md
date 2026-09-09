@@ -41,6 +41,7 @@ image: motd.png        # PNG in plugins/avoMOTD/ ; blank/missing -> built-in sce
 stamp-name: false      # overlay a 2-row block-font logo on top
 name: avoMOTD          # ...this name, when stamp-name is true
 width: 42              # block columns (≈46 is the safe max before the list clips)
+icon: icon.png         # optional 64x64 PNG favicon (plugins/avoMOTD/); blank = leave server-icon.png
 max-players: 0         # "/ N" after the online count; 0 = keep the server's
 ```
 
@@ -59,6 +60,17 @@ Change the PNG or any value, then `/avomotd reload`.
 | Command | |
 |---|---|
 | `/avomotd reload` (alias `/amotd`) | re-read `config.yml` + the PNG, rebuild the banner. Permission `avomotd.admin` (op). |
+
+## What it is NOT (the full-image banner)
+
+Some servers show a full **16px-tall pixel-art banner** in the list (the 1.21.9
+`object`/player-face component trick - 66 MineSkin skin tiles embedded in the MOTD).
+avoMOTD does **not** do that: Adventure can't emit `object` components and Paper's
+`PaperServerListPingEvent` serializes through it, while ProtocolLib doesn't intercept
+the status packet on modern Paper - so the only route left is fragile raw-NMS packet
+injection, which avoMOTD deliberately avoids. avoMOTD gives the reliable, dependency-free
+2px colour strip + a real 64x64 favicon. For the full 16px banner use a plugin that does
+the NMS injection (e.g. ImageMOTD) - it needs a working MineSkin endpoint.
 
 ## Build
 

@@ -27,3 +27,7 @@ width: 42
 
 # The "/ N" shown after the online count. 0 = keep the server's max-players.
 max-players: 0
+
+# Optional 64x64 PNG favicon in plugins/avoMOTD/ set on the ping (no restart via /avomotd reload).
+# Blank = leave the server-icon.png. Must be exactly 64x64.
+icon: icon.png

@@ -23,6 +23,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.CachedServerIcon;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -93,6 +94,7 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
     private int width;
     private int maxPlayers;
     private int[][] grid;
+    private CachedServerIcon icon;   // optional 64x64 favicon, set on the ping
 
     @Override
     public void onEnable() {
@@ -106,7 +108,7 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
     public void reload() {
         reloadConfig();
         enabled = getConfig().getBoolean("enabled", true);
-        width = Math.max(8, Math.min(64, getConfig().getInt("width", 42)));
+        width = Math.max(8, Math.min(127, getConfig().getInt("width", 42)));
         maxPlayers = getConfig().getInt("max-players", 0);
 
         String image = getConfig().getString("image", "motd.png");
@@ -123,6 +125,21 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
         }
         if (getConfig().getBoolean("stamp-name", false)) {
             stampName(getConfig().getString("name", "avoMOTD"));
+        }
+        loadIcon(getConfig().getString("icon", "icon.png"));
+    }
+
+    /** Load a 64x64 PNG favicon from the data folder; blank/missing -> leave the server's. */
+    private void loadIcon(String name) {
+        icon = null;
+        if (name == null || name.isBlank()) return;
+        java.io.File file = new java.io.File(getDataFolder(), name);
+        if (!file.isFile()) return;
+        try {
+            icon = getServer().loadServerIcon(file);
+            getLogger().info("[avoMOTD] favicon loaded: " + name);
+        } catch (Exception e) {
+            getLogger().warning("[avoMOTD] favicon load failed (must be 64x64 PNG): " + e.getMessage());
         }
     }
 
@@ -142,6 +159,7 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPing(PaperServerListPingEvent event) {
         if (!enabled || grid == null) return;
+        if (icon != null) event.setServerIcon(icon);
         event.motd(Component.text()
                 .append(row(0)).append(Component.newline()).append(row(1))
                 .build());
