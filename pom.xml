@@ -14,6 +14,11 @@
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Full-banner (NMS) build only. Point these at YOUR Mojang-mapped Paper
+         server jar + its libraries/ folder (override with -Dpaper.jar=... etc.).
+         The base plugin (2px strip + favicon) builds without them. -->
+    <paper.jar>E:/code/Plugin_avo/Server/Farm/versions/1.21.11/paper-1.21.11.jar</paper.jar>
+    <paper.libs>E:/code/Plugin_avo/Server/Farm/libraries</paper.libs>
   </properties>
 
   <repositories>
@@ -29,6 +34,44 @@
       <artifactId>paper-api</artifactId>
       <version>1.21.11-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
+    </dependency>
+    <!-- Mojang-mapped Paper server jar: for the internal Netty channel hook
+         (io.papermc.paper.network.ChannelInitializeListenerHolder) and the NMS
+         status packet + component codec needed to emit the 1.21.9 object-component
+         banner. Version-specific (matches the running server). Not shaded. -->
+    <dependency>
+      <groupId>io.papermc</groupId>
+      <artifactId>paper-server-runtime</artifactId>
+      <version>1.21.11</version>
+      <scope>system</scope>
+      <systemPath>${paper.jar}</systemPath>
+    </dependency>
+    <!-- Third-party libs the bundler jar references but does not contain (they
+         live in the server's libraries/). Compile-only, matched to the server. -->
+    <dependency>
+      <groupId>io.netty</groupId><artifactId>netty-transport</artifactId><version>4.2.7.Final</version>
+      <scope>system</scope>
+      <systemPath>${paper.libs}/io/netty/netty-transport/4.2.7.Final/netty-transport-4.2.7.Final.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId><artifactId>netty-buffer</artifactId><version>4.2.7.Final</version>
+      <scope>system</scope>
+      <systemPath>${paper.libs}/io/netty/netty-buffer/4.2.7.Final/netty-buffer-4.2.7.Final.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId><artifactId>netty-common</artifactId><version>4.2.7.Final</version>
+      <scope>system</scope>
+      <systemPath>${paper.libs}/io/netty/netty-common/4.2.7.Final/netty-common-4.2.7.Final.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId><artifactId>gson</artifactId><version>2.13.2</version>
+      <scope>system</scope>
+      <systemPath>${paper.libs}/com/google/code/gson/gson/2.13.2/gson-2.13.2.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>com.mojang</groupId><artifactId>datafixerupper</artifactId><version>9.0.19</version>
+      <scope>system</scope>
+      <systemPath>${paper.libs}/com/mojang/datafixerupper/9.0.19/datafixerupper-9.0.19.jar</systemPath>
     </dependency>
   </dependencies>
 

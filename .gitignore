@@ -6,3 +6,8 @@ target/
 # per-server banner image is not part of the plugin
 plugins/
 motd.png
+# full-banner: per-server generated files + local server jars
+banner.json
+tools/banner-cache.json
+tools/_tile.png
+*.png

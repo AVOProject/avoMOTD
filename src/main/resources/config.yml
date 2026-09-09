@@ -31,3 +31,10 @@ max-players: 0
 # Optional 64x64 PNG favicon in plugins/avoMOTD/ set on the ping (no restart via /avomotd reload).
 # Blank = leave the server-icon.png. Must be exactly 64x64.
 icon: icon.png
+
+# --- FULL 16px pixel-art banner (advanced, needs ProtocolLib-free NMS injection
+# built into this jar + a MineSkin key) --------------------------------------
+# Generate plugins/avoMOTD/banner.json with:  python tools/build_banner.py <img.png> <mineskin-key>
+# Present -> the 1.21.9 object-component face-tile banner (264x16) is injected
+# into the status packet (needs 1.21.9-1.21.11 clients). Absent -> the 2px strip.
+banner: banner.json

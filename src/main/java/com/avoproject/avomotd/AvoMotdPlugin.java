@@ -96,12 +96,27 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
     private int[][] grid;
     private CachedServerIcon icon;   // optional 64x64 favicon, set on the ping
 
+    private StatusInjector injector;
+    private String bannerJson;
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
         reload();
         getServer().getPluginManager().registerEvents(this, this);
+        try {
+            injector = new StatusInjector(this);
+            injector.register();
+            injector.setMotdJson(bannerJson);   // full object-component banner from banner.json, or null
+        } catch (Throwable t) {
+            getLogger().warning("[avoMOTD] status injector unavailable: " + t);
+        }
         getLogger().info("[avoMOTD] enabled (enabled=" + enabled + ", " + width + "x" + ROWS + ")");
+    }
+
+    @Override
+    public void onDisable() {
+        if (injector != null) injector.unregister();
     }
 
     /** Re-read config.yml and rebuild the pixel grid. Safe to call from the command. */
@@ -127,6 +142,27 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
             stampName(getConfig().getString("name", "avoMOTD"));
         }
         loadIcon(getConfig().getString("icon", "icon.png"));
+
+        // Full object-component banner: raw status "description" JSON in banner.json.
+        // Present -> the NMS injector sends it (16px face-tile banner). Absent -> the
+        // reliable 2px block strip via the Bukkit event.
+        bannerJson = readBannerJson(getConfig().getString("banner", "banner.json"));
+        if (injector != null) injector.setMotdJson(bannerJson);
+    }
+
+    private String readBannerJson(String name) {
+        if (name == null || name.isBlank()) return null;
+        java.io.File file = new java.io.File(getDataFolder(), name);
+        if (!file.isFile()) return null;
+        try {
+            String json = java.nio.file.Files.readString(file.toPath()).trim();
+            if (json.isEmpty()) return null;
+            getLogger().info("[avoMOTD] banner.json loaded (" + json.length() + " chars) - full banner active");
+            return json;
+        } catch (Exception e) {
+            getLogger().warning("[avoMOTD] banner.json read failed: " + e.getMessage());
+            return null;
+        }
     }
 
     /** Load a 64x64 PNG favicon from the data folder; blank/missing -> leave the server's. */

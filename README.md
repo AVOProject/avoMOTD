@@ -61,16 +61,37 @@ Change the PNG or any value, then `/avomotd reload`.
 |---|---|
 | `/avomotd reload` (alias `/amotd`) | re-read `config.yml` + the PNG, rebuild the banner. Permission `avomotd.admin` (op). |
 
-## What it is NOT (the full-image banner)
+## Full 16px pixel-art banner (advanced)
 
-Some servers show a full **16px-tall pixel-art banner** in the list (the 1.21.9
-`object`/player-face component trick - 66 MineSkin skin tiles embedded in the MOTD).
-avoMOTD does **not** do that: Adventure can't emit `object` components and Paper's
-`PaperServerListPingEvent` serializes through it, while ProtocolLib doesn't intercept
-the status packet on modern Paper - so the only route left is fragile raw-NMS packet
-injection, which avoMOTD deliberately avoids. avoMOTD gives the reliable, dependency-free
-2px colour strip + a real 64x64 favicon. For the full 16px banner use a plugin that does
-the NMS injection (e.g. ImageMOTD) - it needs a working MineSkin endpoint.
+avoMOTD can also emit the **full 1.21.9 face-tile banner** (like the "ImageMOTD"
+servers): a 264x16 image split into **66 tiles of 8x8**, each baked into a
+Minecraft skin and shown in the MOTD as a 1.21.9 `object`/player-face component
+(33 wide x 2 rows). Faces are referenced by **profile id** (not embedded), which
+keeps the status response under the 32767-char limit; 1.21.9-1.21.11 clients
+resolve and render them.
+
+This is done entirely in-plugin (no ImageMOTD, no ProtocolLib): a Netty handler
+added via Paper's internal `ChannelInitializeListenerHolder` rewrites the outbound
+status packet, parsing our raw JSON through Mojang's own component codec (which
+Adventure's serializer cannot emit).
+
+**How to enable it**
+
+1. Get a free MineSkin API key at https://account.mineskin.org/keys .
+2. Generate the banner (uploads 66 skin tiles, cached):
+   ```
+   python tools/build_banner.py your-banner.png <mineskin-key>
+   ```
+   -> writes `plugins/avoMOTD/banner.json`.
+3. `/avomotd reload`. Present `banner.json` -> full banner; remove it -> the 2px strip.
+
+**Caveats (by design of the MC feature):**
+- **Version-specific.** It compiles against the Mojang-mapped Paper server jar
+  (`pom.xml` `paper.jar`/`paper.libs` - point them at your server) and touches the
+  NMS status packet, so a major MC update can require a rebuild.
+- Clients older than 1.21.9 fall back to the 2px block strip.
+- At 264x16 a detailed image reads as a colourful mosaic - design the source for
+  low resolution.
 
 ## Build
 
@@ -78,7 +99,9 @@ the NMS injection (e.g. ImageMOTD) - it needs a working MineSkin endpoint.
 mvn clean package        # target/avoMOTD-1.0.0.jar
 ```
 
-Java 21 + Maven, `paper-api` provided. No shaded dependencies.
+Java 21 + Maven. The base plugin (2px strip + favicon) needs only `paper-api`;
+the full-banner classes additionally need the Mojang-mapped server jar (see the
+`paper.jar` / `paper.libs` properties in `pom.xml`).
 
 ---
 
