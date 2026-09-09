@@ -1,0 +1,29 @@
+# avoMOTD — pixel-art server-list MOTD
+#
+# HOW IT WORKS: the multiplayer server-list ping is only TWO text lines tall and
+# a text component has no background colour, so the banner is rendered as a
+# 2-row grid of full-block pixels (one RGB per cell) - i.e. exactly 2 pixels
+# tall, however big the source image is. A wide PNG is border-trimmed and
+# box-averaged down to <width>x2. Fine detail (a readable logo, small sprites)
+# cannot survive at 2px - put that in the 64x64 server-icon.png instead; here you
+# get a colourful horizon/scene strip.
+
+# Take over the server-list MOTD.
+enabled: true
+
+# A PNG in this plugin's folder (plugins/avoMOTD/) used as the banner. Uniform
+# margins are trimmed automatically. Leave blank / delete the file to use the
+# built-in farm scene instead.
+image: motd.png
+
+# Overlay a name as a 2-row block-font logo on top of the background.
+# Leave false when the image already has its logo baked in.
+stamp-name: false
+name: avoMOTD
+
+# Block columns. Wider = finer, but the server list clips a too-long line
+# (~46 is usually the safe maximum at default GUI scale).
+width: 42
+
+# The "/ N" shown after the online count. 0 = keep the server's max-players.
+max-players: 0

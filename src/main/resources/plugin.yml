@@ -1,0 +1,20 @@
+name: avoMOTD
+version: '${project.version}'
+main: com.avoproject.avomotd.AvoMotdPlugin
+api-version: '1.21'
+folia-supported: true
+author: AVOX2
+website: https://github.com/AVOProject/avoMOTD
+description: >-
+  PNG / pixel-art server-list MOTD. Proprietary. Copyright (c) 2026 AVOX2.
+  All rights reserved. See LICENSE.
+
+commands:
+  avomotd:
+    description: reload avoMOTD config + image
+    usage: /avomotd reload
+    aliases: [amotd]
+    permission: avomotd.admin
+
+permissions:
+  avomotd.admin: { default: op }

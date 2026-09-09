@@ -1,0 +1,8 @@
+target/
+*.log
+.idea/
+*.iml
+.vscode/
+# per-server banner image is not part of the plugin
+plugins/
+motd.png

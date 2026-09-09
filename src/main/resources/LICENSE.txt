@@ -1,0 +1,22 @@
+AVOX2 — Proprietary Software License
+Copyright (c) 2026 AVOX2. All rights reserved.
+
+This software ("avoMOTD"), including its source code, configuration,
+generated data, and compiled builds, is the exclusive property of AVOX2.
+
+Without prior written permission from AVOX2, you MAY NOT:
+  - decompile, disassemble, reverse engineer, deobfuscate, or otherwise attempt
+    to recover the source code from a compiled build;
+  - copy, redistribute, resell, rent, sublicense, publish, or make this software
+    (or any part of it) available to any third party;
+  - reuse its code, logic, or assets, in whole or in part, in any other project;
+  - remove, obscure, or alter this notice or any copyright or authorship mark.
+
+No license, right, or interest is granted except as expressly stated here in
+writing. All rights not expressly granted are reserved by AVOX2.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+Contact: https://github.com/AOTGTR
