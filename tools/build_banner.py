@@ -10,9 +10,11 @@ no dependency on which MineSkin account uploaded it (profile-id lookups do NOT
 render on the client; embedding the URL does).
 
 Usage:
-    python build_banner.py <image.png> <mineskin-key> [out.json]
+    python build_banner.py <image.png> <mineskin-key> <out-banner.json>
 
-Writes the banner JSON (default: plugins/avoMOTD/banner.json under the server).
+The output path is required on purpose - it is per server
+(<server>/plugins/avoMOTD/banner.json), and a wrong default silently writes the
+banner into the wrong server.
 Caches tile-hash -> profile id in tools/banner-cache.json so re-runs are instant
 and unchanged tiles are never re-uploaded.
 """
@@ -35,7 +37,7 @@ MINESKIN = "https://api.mineskin.org/v2/generate"
 DELAY = 3.4                 # MineSkin per-key delay is ~3s; stay just above it
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CACHE = os.path.join(HERE, "banner-cache.json")
+CACHE = os.path.join(HERE, "banner-cache.json")   # tile-hash -> texture URL, shared across servers
 
 
 def trim_border(img: Image.Image) -> Image.Image:
@@ -125,7 +127,7 @@ def upload_tile(tile: Image.Image, key: str) -> str:
 
 
 def main() -> int:
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 4:
         print(__doc__)
         return 1
     image_path, key = sys.argv[1], sys.argv[2]

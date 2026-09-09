@@ -92,10 +92,17 @@ def main() -> int:
         for x in range(64):
             ip[x, y] = c
     icon.paste(strip, ((64 - tw) // 2, top))
-    icon.save(out_path)
+    # Quantise to 256 colours before saving. The favicon is base64'd into the
+    # SAME 32767-char status string as the banner, and a full-colour 64x64 PNG
+    # can eat 16k of it - enough to push a full banner over the limit, which
+    # makes the whole ping fail ("Can't connect to server"). 256 colours is
+    # indistinguishable at 64px and roughly a third of the size.
+    icon.quantize(colors=256, method=Image.MEDIANCUT).save(out_path, "PNG", optimize=True)
     print(f"centre crop cols {x0}-{x1} of {W} ({(x1 - x0) / W * 100:.0f}% of width)")
     print(f"crop {cw}x{ch} (aspect {cw / ch:.1f}:1) -> strip {tw}x{th} px inside 64x64")
-    print(f"wrote {out_path}")
+    import os
+    size = os.path.getsize(out_path)
+    print(f"wrote {out_path} ({size} bytes, ~{size * 4 // 3} base64 chars in the status packet)")
     return 0
 
 

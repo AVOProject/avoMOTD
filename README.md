@@ -23,6 +23,11 @@ avoMOTD trims uniform margins off your PNG and box-averages it down to `width ×
 
 ---
 
+## Setup guide
+
+Step-by-step for putting this on a new server (Thai):
+**[SETUP-TH.md](SETUP-TH.md)**
+
 ## Install
 
 1. Drop `avoMOTD-<ver>.jar` into `plugins/`.
@@ -115,6 +120,24 @@ python tools/make_icon.py banner.png plugins/avoMOTD/icon.png 0.5
 
 The last number is the fraction of banner width kept - smaller zooms in on the
 wordmark, larger shows more scene. Then `/avomotd reload`.
+
+## The 32767-char ceiling
+
+The MOTD and the base64 favicon share **one status string capped at 32767
+characters**. Go over and the server cannot encode the packet at all - clients
+just see *"Can't connect to server"*.
+
+| | approx |
+|---|---|
+| full 66-tile banner | ~17,000 |
+| 64x64 icon, 256 colours | ~6,500 |
+| 64x64 icon, full colour | ~16,000 (will not fit alongside a banner) |
+
+`make_icon.py` quantises to 256 colours for this reason. Check any server with:
+
+```
+python tools/check_status_size.py <host> <port>
+```
 
 ## Build
 
