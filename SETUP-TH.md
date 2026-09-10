@@ -59,6 +59,13 @@ icon: world/icon.png
 
 **ต้องมี MineSkin API key** (ฟรี): https://account.mineskin.org/keys
 
+> เครื่องเจ้าของเก็บ key ไว้ที่ **`C:\Users\Maru\.mineskin-key`** (นอก git repo ทุกอัน)
+> ใช้แบบ `$(cat /c/Users/Maru/.mineskin-key)` อย่า hard-code ลงไฟล์ที่ commit
+>
+> **MineSkin โชว์ secret ครั้งเดียวตอนสร้าง** อ่านซ้ำไม่ได้ ลืมแล้วต้องสร้างใหม่.
+> เคยหายมาแล้วครั้งนึง เพราะไปเก็บไว้ใน `plugins/ImageMOTD/config.yml` แล้วถอด
+> ปลั๊กอินนั้นออก โฟลเดอร์หายไปพร้อม key
+
 ```bash
 python tools/build_banner.py <banner.png> <mineskin-key> <server>/plugins/avoMOTD/banner.json
 ```
@@ -70,6 +77,27 @@ python tools/build_banner.py <banner.png> <mineskin-key> <server>/plugins/avoMOT
 - **ต้องใส่ path ปลายทางเสมอ** — ป้องกันเขียนผิดเซิร์ฟ
 
 มี `banner.json` = full banner / ลบทิ้ง = กลับไป strip
+
+### เส้นดำผ่ากลางแบนเนอร์
+
+client วางสองบรรทัดของ MOTD ห่างกันมากกว่าความสูง sprite ~2px ช่องนั้นเป็น
+**พื้นหลังของ server list** — ไม่ได้เป็นของบรรทัดบนหรือล่าง จึง**ไม่มี component
+ไหนวาดลงไปได้เลย** (`underlined` วาดในกรอบบรรทัดตัวเอง แถมสีจะไป tint หน้า sprite)
+
+เซิร์ฟที่ดูเนียนไม่ได้แก้ปัญหานี้ — เขาใช้ **art โทนมืด** ช่องว่างสีเข้มเลยกลืนหาย
+(ซูมเข้าไปก็ยังเห็นรอยต่ออยู่)
+
+`build_banner.py` เลยทำแบบเดียวกันให้อัตโนมัติ — `fade_seam()` ไล่มืดแถวที่ติด
+รอยต่อลงไปชนช่องดำ เส้นคมๆ จะกลายเป็นแถบเงาที่อ่านเป็นดีไซน์:
+
+```python
+SEAM_FADE = {1: 0.12, 2: 0.38, 3: 0.70}   # หัวไฟล์ build_banner.py
+```
+ห่างรอยต่อ 3px = สว่าง 70%, 2px = 38%, 1px = 12%, แล้วชนสีดำพอดี
+ใส่ `{}` = ไม่แตะรูปเลย. **แก้ค่าแล้วต้องยิง tile ใหม่ทั้งชุด** (hash เปลี่ยนหมด)
+
+> รูปสีสด (ทุ่งเขียว ฟ้าสว่าง) จะเห็นเส้นชัดกว่ารูปโทนมืดมาก — ถ้าเลือกรูปได้
+> เอาที่กลางภาพมืดอยู่แล้วจะเนียนที่สุด
 
 ---
 
@@ -102,6 +130,26 @@ python tools/build_banner.py <banner.png> <mineskin-key> <server>/plugins/avoMOT
 python tools/check_status_size.py <host> <port>
 ```
 
+### เซิร์ฟที่มีไอคอนของตัวเองอยู่แล้ว
+
+**อย่าสร้างทับ** — ชี้ config ไปที่ของเดิมแทน:
+```yaml
+icon: server-icon.png     # ไอคอนเซิร์ฟมาตรฐาน อยู่ที่ราก server
+```
+`resolveFile()` หาไล่ 3 ที่: absolute path → `plugins/avoMOTD/` → รากเซิร์ฟ
+
+⚠️ **ระวัง `world/icon.png` ไม่ใช่ไอคอนเซิร์ฟ** — มันคือรูปย่อของ world ที่โผล่ใน
+ลิสต์ singleplayer คนละไฟล์กับ `server-icon.png` ทับแล้วรูป world หาย
+
+ไอคอนของเจ้าของมักเป็น PNG สีเต็ม กิน ~16-17k → **บวกกับ banner แล้วเกินเพดาน**
+บีบก่อนโดยไม่เปลี่ยนดีไซน์ (สำรองตัวเดิมไว้ก่อนเสมอ):
+```bash
+cp server-icon.png server-icon-original.png
+python -c "from PIL import Image; im=Image.open('server-icon.png').convert('RGB'); \
+im.quantize(colors=192).save('server-icon.png', optimize=True)"
+```
+ของจริงที่วัดได้: 12059 → 4318 bytes (17694 → 5894 chars) ต่างจากตาเปล่า 6.4/255
+
 ---
 
 ## 7. แจกต่อได้ไหม
@@ -133,3 +181,22 @@ python tools/build_banner.py plugins/avoMOTD/motd.png <key> <server>/plugins/avo
 # 4. /avomotd reload  → ในเกมกด Refresh
 # 5. python tools/check_status_size.py <host> <port>   ← เช็คไม่ชนเพดาน
 ```
+
+---
+
+## เซิร์ฟที่ลงแล้ว (บันทึกไว้กันลืม)
+
+| เซิร์ฟ | ที่อยู่ | port | ไอคอน | banner |
+|---|---|---|---|---|
+| **Farm** (avo2) | `E:\code\Plugin_avo\Server\Farm` | 25566* | `world/icon.png` | ✅ 17004 chars |
+| **avoMC** (avo1) | `D:\ServerAVO\avoMC` | 25565 | `world/icon.png` | ✅ |
+| **gtayl** | `E:\code\ServerMCworke\gtayl` | 25566* | `server-icon.png` (ของเจ้าของ บีบแล้ว) | ⏳ |
+
+\* Farm กับ gtayl ใช้ port เดียวกัน เปิดพร้อมกันไม่ได้ — ตัวที่เปิดทีหลังจะแย่ง port
+
+**ยิงคำสั่งเข้าเซิร์ฟที่รันอยู่ ไม่ต้องรีสตาร์ท:**
+```bash
+python <avoFarmC>/tools/console.py --server "E:/code/ServerMCworke/gtayl" "avomotd reload"
+```
+ลองผ่าน ServerTap ก่อน ตกไป RCON เอง. ลงปลั๊กอินใหม่บนเซิร์ฟที่รันอยู่ใช้
+`plugman load avoMOTD` (ต้องมี PlugManX)

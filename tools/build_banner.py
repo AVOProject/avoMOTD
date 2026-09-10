@@ -33,6 +33,10 @@ from PIL import Image
 
 COLS, ROWS = 33, 2          # 264x16 / 8 = 33 x 2 tiles
 TILE = 8
+
+# How hard to fade each row next to the line break: {rows from the break: brightness}.
+# See fade_seam(). Empty dict = leave the artwork alone.
+SEAM_FADE = {1: 0.12, 2: 0.38, 3: 0.70}
 MINESKIN = "https://api.mineskin.org/v2/generate"
 DELAY = 3.4                 # MineSkin per-key delay is ~3s; stay just above it
 
@@ -68,6 +72,34 @@ def trim_border(img: Image.Image) -> Image.Image:
     while x1 > x0 + 1 and col_uniform(x1 - 1, y0, y1):
         x1 -= 1
     return img.crop((x0, y0, x1, y1))
+
+
+def fade_seam(banner: Image.Image) -> None:
+    """Darken the rows either side of the line break, in place.
+
+    The client draws the two MOTD lines ~2px further apart than a face sprite is
+    tall, and that strip is the server-list background - no text component can
+    paint into it, because it belongs to neither line. Against bright artwork it
+    reads as a black slash through the picture.
+
+    So do what the banners that look seamless do: bring the picture down to meet
+    the gap. Fading the rows next to the break turns one hard black line into a
+    short shadow, which reads as a deliberate divider rather than damage. Set
+    SEAM_FADE to {} to keep the artwork untouched.
+    """
+    if not SEAM_FADE:
+        return
+    px = banner.load()
+    width = COLS * TILE
+    for distance, amount in SEAM_FADE.items():
+        # distance 1 = the rows touching the break; the sampled row TILE is the
+        # one hidden inside the gap and is never drawn.
+        for y in (TILE - distance, TILE + distance):
+            if not 0 <= y < ROWS * TILE + 1:
+                continue
+            for x in range(width):
+                r, g, b, a = px[x, y]
+                px[x, y] = (int(r * amount), int(g * amount), int(b * amount), a)
 
 
 def uuid_to_ints(hex32: str) -> list[int]:
@@ -144,6 +176,7 @@ def main() -> int:
     # was never meant to be seen (the dark line itself cannot be removed).
     banner = trim_border(Image.open(image_path).convert("RGBA")).resize(
         (COLS * TILE, ROWS * TILE + 1), Image.LANCZOS)
+    fade_seam(banner)
 
     faces, uploads, reused = [], 0, 0
     for row in range(ROWS):

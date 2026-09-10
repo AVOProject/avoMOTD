@@ -11,3 +11,4 @@ banner.json
 tools/banner-cache.json
 tools/_tile.png
 *.png
+__pycache__/
