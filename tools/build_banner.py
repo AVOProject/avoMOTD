@@ -34,9 +34,24 @@ from PIL import Image
 COLS, ROWS = 33, 2          # 264x16 / 8 = 33 x 2 tiles
 TILE = 8
 
-# How hard to fade each row next to the line break: {rows from the break: brightness}.
-# See fade_seam(). Empty dict = leave the artwork alone.
-SEAM_FADE = {1: 0.12, 2: 0.38, 3: 0.70}
+# Opaque white shadow (0xFFFFFFFF as a signed int). This is what closes the gap
+# between the two MOTD lines.
+#
+# The client draws every glyph's shadow offset one pixel down and right. Left at
+# the default it is a dark smear nobody notices, but a sprite's shadow is the
+# sprite again - so an opaque white shadow paints a full-colour copy of each
+# face one pixel lower, and the bottom row of line 1's shadow lands inside the
+# gap. The seam fills itself, and the whole banner reads brighter because every
+# face is drawn twice.
+#
+# The cost is a one-pixel ghost down-and-right of everything: the picture looks
+# slightly soft. That is the trade, and it is worth it.
+#
+# Credit: tgb20/ImageMOTD (GPL-3.0) documents the -1 shadow. Before finding it
+# we tried darkening the rows either side of the break to blend into the gap;
+# anything strong enough to hide it turned a third of a 16px-tall banner black.
+# That approach is gone - this one fixes the cause instead of masking it.
+SHADOW_COLOR = -1
 MINESKIN = "https://api.mineskin.org/v2/generate"
 DELAY = 3.4                 # MineSkin per-key delay is ~3s; stay just above it
 
@@ -73,33 +88,6 @@ def trim_border(img: Image.Image) -> Image.Image:
         x1 -= 1
     return img.crop((x0, y0, x1, y1))
 
-
-def fade_seam(banner: Image.Image) -> None:
-    """Darken the rows either side of the line break, in place.
-
-    The client draws the two MOTD lines ~2px further apart than a face sprite is
-    tall, and that strip is the server-list background - no text component can
-    paint into it, because it belongs to neither line. Against bright artwork it
-    reads as a black slash through the picture.
-
-    So do what the banners that look seamless do: bring the picture down to meet
-    the gap. Fading the rows next to the break turns one hard black line into a
-    short shadow, which reads as a deliberate divider rather than damage. Set
-    SEAM_FADE to {} to keep the artwork untouched.
-    """
-    if not SEAM_FADE:
-        return
-    px = banner.load()
-    width = COLS * TILE
-    for distance, amount in SEAM_FADE.items():
-        # distance 1 = the rows touching the break; the sampled row TILE is the
-        # one hidden inside the gap and is never drawn.
-        for y in (TILE - distance, TILE + distance):
-            if not 0 <= y < ROWS * TILE + 1:
-                continue
-            for x in range(width):
-                r, g, b, a = px[x, y]
-                px[x, y] = (int(r * amount), int(g * amount), int(b * amount), a)
 
 
 def uuid_to_ints(hex32: str) -> list[int]:
@@ -176,7 +164,6 @@ def main() -> int:
     # was never meant to be seen (the dark line itself cannot be removed).
     banner = trim_border(Image.open(image_path).convert("RGBA")).resize(
         (COLS * TILE, ROWS * TILE + 1), Image.LANCZOS)
-    fade_seam(banner)
 
     faces, uploads, reused = [], 0, 0
     for row in range(ROWS):
@@ -208,7 +195,8 @@ def main() -> int:
                           "player": {"properties": [{"name": "textures", "value": value}]}})
 
     # white at the root: sprites are tinted by the inherited text colour
-    motd = {"text": "", "color": "white", "extra": faces}
+    motd = {"text": "", "color": "white",
+            "shadow_color": SHADOW_COLOR, "extra": faces}
     js = json.dumps(motd, separators=(",", ":"))
     open(out_path, "w", encoding="utf-8").write(js)
     size = len(js)
