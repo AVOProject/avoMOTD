@@ -8,10 +8,10 @@
 > - **full banner** — 66 หัวสกิน 8×8 เรียงเป็นภาพ 264×16 (client **1.21.9+** เท่านั้น,
 >   ต่ำกว่านั้น fallback เป็น strip อัตโนมัติ) ต้อง generate ผ่าน MineSkin ครั้งเดียว
 
-> **ทางลัดบนเครื่องเจ้าของ** — clone อยู่ที่ `E:\codevo-kitvoMOTD` แล้ว
+> **ทางลัดบนเครื่องเจ้าของ** — clone อยู่ที่ `E:\code\avo-kit\avoMOTD` แล้ว
 >
 > ```
-> python E:\codevo-kit\kit.py motd <โฟลเดอร์เซิร์ฟ> --image banner.png
+> python E:\code\avo-kit\kit.py motd <โฟลเดอร์เซิร์ฟ> --image banner.png
 > ```
 >
 > วาง jar + config + รูปให้ทีเดียว ชี้ไอคอนไปที่ของเดิมของเซิร์ฟ แล้วพิมพ์ขั้นที่เหลือ
