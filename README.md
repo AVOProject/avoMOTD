@@ -108,6 +108,23 @@ Adventure's serializer cannot emit).
 - At 264x16 a detailed image reads as a colourful mosaic - design the source for
   low resolution.
 
+## Making the source image
+
+The banner has to be 15.5:1 and no image model will draw that shape - they top out
+around 2.4:1. What works: three ordinary 3:2 pictures from one chat, so the style
+matches - a left scene, a sign with the server's name, a right scene - stitched
+side by side. The sign's frame hides both joins.
+
+```
+python tools/stitch.py left.png sign.png right.png motd.png --crop-c X0 Y0 X1 Y1
+```
+
+Crop the sign tight to the lettering with `--crop-c`, not to the whole plank: the
+banner is 17 pixels tall, and with the frame included the letters come out ~9px
+and the gap between the two MOTD lines cuts them in half. The script also writes
+`motd_preview.png` - the banner as the server list will actually draw it. Check
+that one, not the full-size image, before spending MineSkin quota.
+
 ## Icons
 
 A 7:1 banner cropped square shows a tenth of itself. `tools/make_icon.py` takes a

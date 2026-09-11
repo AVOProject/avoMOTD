@@ -59,21 +59,44 @@
 เพดานของ image model อยู่ราว 2.4:1 — **เป็นข้อจำกัดของโมเดล ไม่ใช่ prompt ไม่ดี**
 เปลี่ยน prompt หรือเปลี่ยนรุ่นก็ไม่ช่วย
 
-**ทางที่ได้ผล เรียงจากคมสุด:**
+**ทางที่ได้ผล เรียงจากดีสุด:**
 
-1. **ทำเองใน Affinity/Photoshop** — canvas 2112×136 **หน่วย px** (เคยพลาดตั้งเป็น mm
-   ได้ 24944×1606) วาง art แล้วลากเต็มความกว้าง (Shift ค้าง) ปล่อยล้นบน-ล่าง
-   แล้ว**พิมพ์ชื่อเซิร์ฟใหม่ในนั้น** ตัวสูง ~90px ขอบดำหนา = คมที่สุด
-2. **ใช้รูป AI แล้วยอมให้บีบ** — ที่เซิร์ฟตอนนี้ใช้แบบนี้ ดูโอเค แค่ตัวหนังสือแบนนิดหน่อย
-3. **crop แทนบีบ** — สัดส่วนถูก แต่เนื้อรูปแนวตั้งหายไป ~65%
+1. **3 รูปต่อกัน (แนะนำ — Tree_yl ใช้วิธีนี้)** — รูปธรรมดา 3:2 สามรูปจากแชทเดียวกัน
+   **ฉากซ้าย | ป้ายชื่อเซิร์ฟ | ฉากขวา** ต่อด้วย `tools/stitch.py` — ขอบป้ายกลบรอยต่อ
+2. **ทำเองใน Affinity/Photoshop** — canvas 2112×136 **หน่วย px** (เคยพลาดตั้งเป็น mm
+   ได้ 24944×1606) พิมพ์ชื่อเซิร์ฟเองตัวสูง ~90px ขอบดำหนา
+3. **รูปเดียวแล้วยอมให้บีบ** — ตัวหนังสือแบน
+4. **crop แทนบีบ** — เนื้อรูปแนวตั้งหายไป ~65%
 
-**ถ้าจะให้ AI ทำรูป** สั่งแบบนี้ได้ผลดีกว่า (สำหรับเอาไปครอป/วางใน Affinity ต่อ):
+### 3 รูปต่อกัน — ทำยังไง
+
+**prompt** (ChatGPT แชทเดียวกันทั้ง 3 รูป สไตล์จะเข้าชุด):
 
 ```
-Pixel art, very wide banner. Hard edges, NO anti-aliasing, NO gradients,
-flat colours. Dark night palette. Server name in big bold chunky letters with
-a thick black outline. No border, no frame — art fills the canvas edge to edge.
+1) Pixel art, Minecraft style, landscape 3:2. A long horizontal wooden sign across
+   the middle with the exact text "<ชื่อเซิร์ฟ>" in big bold pixel letters, cream
+   with a thick dark outline. Forest behind. Hard edges, no anti-aliasing, flat colours.
+2) Same style, 3:2. <ฉากซ้าย>. Keep the action in the vertical middle. No text.
+3) Same style, 3:2. <ฉากขวา>. Keep the action in the vertical middle. No text.
 ```
+
+**ต่อ:**
+
+```
+python tools/stitch.py ซ้าย.png ป้าย.png ขวา.png motd.png --crop-c X0 Y0 X1 Y1
+```
+
+- `--crop-c` **ครอปป้ายชิดตัวอักษร ไม่ใช่ทั้งแผ่นไม้** — ทั้งแผ่นได้ตัวหนังสือ ~9px จาก 17
+  แถว และช่องกลางบาดครึ่งตัว. ชิดตัวอักษรได้ ~13px อ่านชัด
+- ความกว้างช่องกลางคำนวณจากสัดส่วนป้ายเอง
+- `--ay-l` / `--ay-r` เลื่อนแถบที่ตัดขึ้น-ลง (0 บน · 1 ล่าง) ให้ตรงจุดสำคัญของรูป
+- **ดู `motd_preview.png` ก่อนยิง MineSkin** — จำลองหน้าจอจริง (264×17 + ช่องกลาง + เงา)
+  รูปขนาดเต็มดูดีเสมอ เชื่อไม่ได้
+
+**ไอค่อน** (เฉพาะเซิร์ฟที่ยังไม่มี): แชทเดิม สั่งรูปสี่เหลี่ยม ชื่อซ้อน 2 บรรทัด สีสด →
+ย่อ 64×64 บีบ 192 สี ได้ ~5.4k chars
+
+> ChatGPT ผ่าน browser automation: ช่องพิมพ์ไม่รับ Enter — เติมข้อความแล้วกดปุ่ม Send
 
 รูปโทนมืดดีกว่าสีสด — ช่องว่างกลางแบนเนอร์จะกลืนหายไปกับพื้นมืดได้เนียนกว่า
 
@@ -296,8 +319,11 @@ icon: server-icon.png
 | **Farm** (avo2) | `E:\code\Plugin_avo\Server\Farm` | 25566* | `world/icon.png` | ✅ 17004 chars |
 | **avoMC** (avo1) | `D:\ServerAVO\avoMC` | 25565 | `world/icon.png` | ✅ |
 | **gtayl** | `E:\code\ServerMCworke\gtayl` | 25566* | `server-icon.png` (ของเจ้าของ บีบแล้ว) | ✅ |
+| **Tree_yl** | `E:\code\ServerMCworke\Tree_yl` | 25567 · RCON 25578 · ServerTap 4570 | `world/server-icon.png` (ทำใหม่ 64×64) | ✅ 3 รูปต่อกัน |
 
-\* Farm กับ gtayl ใช้ port เดียวกัน เปิดพร้อมกันไม่ได้ — ตัวที่เปิดทีหลังจะแย่ง port
+\* Farm กับ gtayl ใช้ port เดียวกัน เปิดพร้อมกันไม่ได้ — ตัวที่เปิดทีหลังจะแย่ง port.
+เซิร์ฟส่วนใหญ่ใช้ ServerTap 4567 ร่วมกัน — `console.py` อาจยิงไปผิดเซิร์ฟ ถ้าไม่แน่ใจใช้
+`--transport rcon`
 
 **ยิงคำสั่งเข้าเซิร์ฟที่รันอยู่ ไม่ต้องรีสตาร์ท:**
 ```bash
