@@ -6,9 +6,11 @@ package com.avoproject.avomotd;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.papermc.paper.network.ChannelInitializeListenerHolder;
 import net.kyori.adventure.key.Key;
@@ -92,6 +94,35 @@ public final class StatusInjector {
     }
 
     private void onChannel(Channel channel) {
+        // Shared between the raw peek at the head of the pipeline and the packet
+        // rewrite near the tail: [0] = the client's real handshake protocol.
+        final int[] seen = { -1 };
+
+        // ViaVersion rewrites the handshake's protocol field to the server's own
+        // before the decoded ClientIntentionPacket reaches us, so every client
+        // would look like a native one. Peek the raw bytes at the very head of the
+        // pipeline instead - that is ahead of Via and of the vanilla decoder.
+        channel.pipeline().addFirst("avomotd_handshake", new ChannelInboundHandlerAdapter() {
+            private boolean done;
+
+            @Override
+            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                if (!done && msg instanceof ByteBuf buf) {
+                    done = true;
+                    try {
+                        ByteBuf peek = buf.duplicate();
+                        readVarInt(peek);                   // frame length
+                        if (readVarInt(peek) == 0) {        // packet id 0 = handshake
+                            seen[0] = readVarInt(peek);     // protocol version
+                        }
+                    } catch (Throwable ignored) {
+                        // short/compressed/unexpected first frame - stay at -1
+                    }
+                }
+                super.channelRead(ctx, msg);
+            }
+        });
+
         channel.pipeline().addBefore("packet_handler", "avomotd_status", new ChannelDuplexHandler() {
             /** The client's handshake protocol version, caught on the way in. */
             private int protocol = -1;
@@ -109,7 +140,9 @@ public final class StatusInjector {
                 Object out = msg;
                 try {
                     if (msg instanceof ClientboundStatusResponsePacket packet) {
-                        String json = jsonFor(protocol);
+                        // The raw peek wins: it is the client's own number, while the
+                        // decoded packet may have been rewritten by ViaVersion.
+                        String json = jsonFor(seen[0] > 0 ? seen[0] : protocol);
                         if (json != null) {
                             ServerStatus old = packet.status();
                             Component desc = parse(json);
@@ -124,6 +157,19 @@ public final class StatusInjector {
                 super.write(ctx, out, promise);
             }
         });
+    }
+
+    /** Minecraft's VarInt, read straight off the wire (max 5 bytes). */
+    private static int readVarInt(ByteBuf buf) {
+        int value = 0;
+        for (int i = 0; i < 5; i++) {
+            byte b = buf.readByte();
+            value |= (b & 0x7F) << (i * 7);
+            if ((b & 0x80) == 0) {
+                return value;
+            }
+        }
+        throw new IllegalArgumentException("VarInt too big");
     }
 
     /** Parse raw JSON into an NMS component via Mojang's registry-aware codec. */

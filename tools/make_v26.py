@@ -18,11 +18,16 @@ import sys
 import uuid
 
 
-def face_id(value: str) -> str:
+def face_id(value: str):
     # Deterministic, unique-per-tile UUID from the texture value, so identical
     # tiles share one id (and the client caches one skin) while different tiles
     # never collide in the profile/skin cache.
-    return str(uuid.UUID(bytes=hashlib.md5(value.encode()).digest()))
+    #
+    # The component codec takes the id as Mojang's 4x int-array form, NOT the
+    # dashed string: a string id fails with "No matching codec found" on 26.x
+    # (verified against a live Paper 26.2 via /tellraw).
+    b = hashlib.md5(value.encode()).digest()
+    return [int.from_bytes(b[i:i + 4], "big", signed=True) for i in range(0, 16, 4)]
 
 
 def convert(src: str, dst: str) -> int:
