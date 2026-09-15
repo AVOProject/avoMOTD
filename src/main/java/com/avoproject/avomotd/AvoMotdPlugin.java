@@ -98,6 +98,7 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
 
     private StatusInjector injector;
     private String bannerJson;
+    private String banner26Json;
 
     @Override
     public void onEnable() {
@@ -107,7 +108,8 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
         try {
             injector = new StatusInjector(this);
             injector.register();
-            injector.setMotdJson(bannerJson);   // full object-component banner from banner.json, or null
+            injector.setMotdJson(bannerJson);       // old-format banner (clients <= 774)
+            injector.setMotdJson26(banner26Json);   // new-format banner (clients 775+), or null
         } catch (Throwable t) {
             getLogger().warning("[avoMOTD] status injector unavailable: " + t);
         }
@@ -147,7 +149,14 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
         // Present -> the NMS injector sends it (16px face-tile banner). Absent -> the
         // reliable 2px block strip via the Bukkit event.
         bannerJson = readBannerJson(getConfig().getString("banner", "banner.json"));
-        if (injector != null) injector.setMotdJson(bannerJson);
+        // 26.x reworked the player-sprite profile format; a separate banner-26.json
+        // (built with --v26) carries the new-format faces. Sent only to clients on
+        // protocol 775+; older clients keep the original banner unchanged.
+        banner26Json = readBannerJson(getConfig().getString("banner26", "banner-26.json"));
+        if (injector != null) {
+            injector.setMotdJson(bannerJson);
+            injector.setMotdJson26(banner26Json);
+        }
     }
 
 
