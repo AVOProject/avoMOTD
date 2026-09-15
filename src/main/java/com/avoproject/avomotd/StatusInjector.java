@@ -73,12 +73,19 @@ public final class StatusInjector {
         return motdJson != null || motdJson26 != null;
     }
 
-    /** The banner JSON to send this client, by the protocol version it handshook with. */
+    /**
+     * The banner JSON to send this client, by the protocol version it handshook with.
+     *
+     * <p>A 26.x client does NOT render player sprites on the multiplayer screen at
+     * all - every face comes out as its fallback text ({@code [name head]}), even
+     * for a real account, a name-only profile or an embedded textures property
+     * (tested against 26.2). So there is no face banner to send those clients: null
+     * means "leave the packet alone", and they get the plain 2-row pixel MOTD, which
+     * is text and renders everywhere. If a working new format ever turns up, drop it
+     * in as banner-26.json and this sends it again.
+     */
     private String jsonFor(int protocol) {
-        if (protocol >= NEW_PROTOCOL && motdJson26 != null) {
-            return motdJson26;
-        }
-        return motdJson != null ? motdJson : motdJson26;
+        return protocol >= NEW_PROTOCOL ? motdJson26 : motdJson;
     }
 
     public void register() {

@@ -149,10 +149,11 @@ public final class AvoMotdPlugin extends JavaPlugin implements Listener {
         // Present -> the NMS injector sends it (16px face-tile banner). Absent -> the
         // reliable 2px block strip via the Bukkit event.
         bannerJson = readBannerJson(getConfig().getString("banner", "banner.json"));
-        // 26.x reworked the player-sprite profile format; a separate banner-26.json
-        // (built with --v26) carries the new-format faces. Sent only to clients on
-        // protocol 775+; older clients keep the original banner unchanged.
-        banner26Json = readBannerJson(getConfig().getString("banner26", "banner-26.json"));
+        // 26.x reworked the player-sprite profile and its multiplayer screen does not
+        // render sprites at all - every face becomes its fallback text - so there is
+        // nothing to send those clients and they fall through to the 2-row pixel MOTD.
+        // Left configurable: point banner26 at a file if a format is ever found.
+        banner26Json = readBannerJson(getConfig().getString("banner26", ""));
         if (injector != null) {
             injector.setMotdJson(bannerJson);
             injector.setMotdJson26(banner26Json);
